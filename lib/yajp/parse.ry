@@ -70,33 +70,3 @@ class YAJP::ParseCore
         }
 
 end
-
----- inner
-
-def initialize(lexer)
-  @lexer = lexer
-end
-
-def parse
-  do_parse
-end
-
-private
-
-def next_token
-  token = @lexer.read
-  return [false, nil] if token.kind == :EOF
-  [token.kind, token]
-end
-
-def pos(token)
-  [token.line, token.col]
-end
-
----- footer
-
-module YAJP
-  private_constant :ParseCore
-end
-
-
