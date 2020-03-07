@@ -1,5 +1,11 @@
 module YAJP
   class Compiler
+    def initialize
+      yield self if block_given?
+    end
+
+    attr_accessor :symbolize_keys
+
     def compile(ast)
       case ast
       in [:json, filename, element]
@@ -24,7 +30,10 @@ module YAJP
     private
 
     def compile_object(members)
-      members.each_with_object({}){|(k, v), h| h[k] = compile(v) }
+      members.each_with_object({}){|(k, v), h|
+        k = k.intern if symbolize_keys
+        h[k] = compile(v)
+      }
     end
 
     def compile_array(elements)

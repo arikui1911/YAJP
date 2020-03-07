@@ -22,6 +22,10 @@ module YAJP
       @fib = Fiber.new(&method(:lex))
     end
 
+    def filename
+      @file
+    end
+
     # Returns next token.
     # 
     # @return [Token] token object
