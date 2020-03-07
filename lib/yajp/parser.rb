@@ -24,7 +24,7 @@ module YAJP
   end
 
   class ParseError < RuntimeError
-    def initialize(cause_token, msg)
+    def initialize(msg, cause_token = nil)
       super msg
       @cause_token = cause_token
     end
@@ -56,7 +56,11 @@ module YAJP
     def on_error(id, token, stack)
       insp = token.value.inspect
       insp = "#{insp}(#{token.kind})" unless token.kind == token.value
-      raise ParseError.new(token, "#{@lexer.filename}:#{token.line}:#{token.col}: parse error on #{insp})")
+      raise ParseError.new("#{@lexer.filename}:#{token.line}:#{token.col}: parse error on #{insp})", token)
+    end
+
+    def empty_input!
+      raise ParseError.new("empty input")
     end
   end
   private_constant :ParseCore

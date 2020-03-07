@@ -4,6 +4,10 @@ class YAJP::ParseCore
   rule
 
   json : element
+       |
+       {
+          empty_input! 
+       }
 
   element : object
           | array
