@@ -1,4 +1,5 @@
 module YAJP
+  # Compiler compiles JSON AST to Ruby objects.
   class Compiler
     def initialize
       yield self if block_given?
@@ -6,9 +7,15 @@ module YAJP
 
     attr_accessor :symbolize_keys
 
+    # Run compiler.
+    #
+    # @param [Array] ast JSON AST
+    #
+    # @return [Object] value from JSON
+    #
     def compile(ast)
       case ast
-      in [:json, filename, element]
+      in [:json, _, filename, element]
         compile(element)
       in [:object, [line, col], members]
         compile_object members

@@ -2,14 +2,24 @@ require_relative './parse.tab'
 require 'yajp/lexer'
 
 module YAJP
+  # Parser parses lexer-token-stream and returns AST.
+  #
+  # AST are represented by Array: [node_type_symbol, [line, col], attrs...]
+  #
   class Parser
     def initialize(lexer)
       @lexer = lexer
       @core = ParseCore.new(lexer)
     end
 
+    # Run parser.
+    #
+    # @return [Array] AST (Abstract Syntax Tree) of JSON
+    #
+    # @raise [ParseError] JSON might contain syntax error
+    #
     def parse
-      [:json, @lexer.filename, @core.parse]
+      [:json, [1, 1], @lexer.filename, @core.parse]
     end
   end
 
