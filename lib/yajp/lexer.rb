@@ -1,3 +1,5 @@
+require 'yajp/optionable'
+
 module YAJP
   # Lexer lexical-analize JSON source and returns token object
   # like a kind of stream.
@@ -6,15 +8,19 @@ module YAJP
   # (it means JSON values excluded object and array).
   #
   class Lexer
+    include Optionable
+
     # Generate a lexer instance.
     # 
     # @param [#each_line] src             String, IO and others contains JSON source
     # @param [String]     filename        a filename of src used for error message, for example
     # @param [Integer]    initial_lineno  lexer count line number of src from this value
+    # @param [boolean]    comment         Allow comment syntax or not
     #
     # @return [Lexer] a lexer instance
     #
-    def initialize(src, filename: nil, initial_lineno: 1)
+    def initialize(src, filename = nil, initial_lineno = 1, comment: false)
+      optionable_init binding()
       @src = src
       @file = filename
       @line = initial_lineno
@@ -64,10 +70,24 @@ module YAJP
       emit :EOF, nil
     end
 
+    def line_comment_re
+      @comment ? /\A\/\// : /(?!)/
+    end
+
+    def block_comment_beg_re
+      @comment ? /\A\/\*/ : /(?!)/
+    end
+
     def lex_initial(src)
+      lc_re = line_comment_re()
+      bc_re = block_comment_beg_re()
       case src
       in /\A[\s\n]+/
         # do nothing
+      in ^lc_re
+        return ''
+      in ^bc_re
+        @state = :comment
       in /\A"/
         @string = new_token(:STRING, String.new)
         @state = :string
@@ -83,6 +103,16 @@ module YAJP
         emit :NULL, nil
       in /\A./
         emit $&, $&
+      end
+      $'
+    end
+
+    def lex_comment(src)
+      case src
+      in /\A\*\//
+        @state = :initial
+      in /\A[\s\n]+/ | /\A./
+        # do nothing
       end
       $'
     end

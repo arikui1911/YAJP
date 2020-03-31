@@ -1,25 +1,147 @@
-require_relative './parse.tab'
+require 'yajp/optionable'
 require 'yajp/lexer'
 
 module YAJP
-  # Parser parses lexer-token-stream and returns AST.
-  #
-  # AST are represented by Array: [node_type_symbol, [line, col], attrs...]
-  #
   class Parser
-    def initialize(lexer)
+    include Optionable
+
+    def initialize(lexer, trailing_comma: false)
+      optionable_init binding()
       @lexer = lexer
-      @core = ParseCore.new(lexer)
+      @buf = []
     end
 
-    # Run parser.
-    #
-    # @return [Array] AST (Abstract Syntax Tree) of JSON
-    #
-    # @raise [ParseError] JSON might contain syntax error
-    #
     def parse
-      [:json, [1, 1], @lexer.filename, @core.parse]
+      parse_json
+    end
+
+    private
+
+    def read
+      @buf.empty? ? @lexer.read : @buf.pop
+    end
+
+    def unread(token)
+      @buf.push token
+      nil
+    end
+
+    def peek
+      read().tap{|t| unread t }
+    end
+
+    def pos(token)
+      [token.line, token.col]
+    end
+
+    def inspect_token(t)
+      return t.value.inspect if t.kind == t.value
+      "#{t.value.inspect}(#{t.kind})"
+    end
+
+    def parse_error(t, msg)
+      raise ParseError.new("#{@lexer.filename}:#{t.line}:#{t.col}: #{msg}", t)
+    end
+
+    def expect(kind)
+      t = read()
+      parse_error(t, "expect #{kind} but #{inspect_token t}") unless kind == t.kind
+      t
+    end
+
+    def unexpected(t)
+      parse_error t, "unexpected #{inspect_token t}"
+    end
+
+    def parse_json
+      t = read()
+      raise ParseError.new("empty input") if t.kind == :EOF
+      unread t
+      [:json, [1, 1], @lexer.filename, parse_element()]
+    end
+
+    def parse_element
+      t = read()
+      case t.kind
+      when '{'
+        unread t
+        parse_object
+      when '['
+        unread t
+        parse_array
+      when :STRING
+        [:string, pos(t), t.value]
+      when :NUMBER
+        [:number, pos(t), t.value]
+      when :TRUE
+        [:true, pos(t)]
+      when :FALSE
+        [:false, pos(t)]
+      when :NULL
+        [:null, pos(t)]
+      else
+        unexpected t
+      end
+    end
+
+    def parse_object
+      beg = expect('{')
+      t = read()
+      case t.kind
+      when '}'
+        [:object, pos(beg), []]
+      when :STRING
+        unread t
+        members = parse_members()
+        expect '}'
+        [:object, pos(beg), members]
+      else
+        unexpected t
+      end
+    end
+
+    def parse_members
+      members = [parse_member()]
+      loop do
+        t = read()
+        unless t.kind == ','
+          unread t
+          break
+        end
+        break if @trailing_comma && peek().kind == '}'
+        members << parse_member()
+      end
+      members
+    end
+
+    def parse_member
+      k = expect(:STRING)
+      expect ':'
+      [k.value, parse_element()]
+    end
+
+    def parse_array
+      beg = expect('[')
+      t = read()
+      return [:array, pos(beg), []] if t.kind == ']'
+      unread t
+      elements = parse_elements()
+      expect ']'
+      [:array, pos(beg), elements]
+    end
+
+    def parse_elements
+      elements = [parse_element()]
+      loop do
+        t = read()
+        unless t.kind == ','
+          unread t
+          break
+        end
+        break if @trailing_comma && peek().kind == ']'
+        elements << parse_element()
+      end
+      elements
     end
   end
 
@@ -31,38 +153,4 @@ module YAJP
 
     attr_reader :cause_token
   end
-
-  class ParseCore
-    def initialize(lexer)
-      @lexer = lexer
-    end
-
-    def parse
-      do_parse
-    end
-
-    private
-
-    def next_token
-      token = @lexer.read
-      return [false, nil] if token.kind == :EOF
-      [token.kind, token]
-    end
-
-    def pos(token)
-      [token.line, token.col]
-    end
-
-    def on_error(id, token, stack)
-      insp = token.value.inspect
-      insp = "#{insp}(#{token.kind})" unless token.kind == token.value
-      raise ParseError.new("#{@lexer.filename}:#{token.line}:#{token.col}: parse error on #{insp})", token)
-    end
-
-    def empty_input!
-      raise ParseError.new("empty input")
-    end
-  end
-  private_constant :ParseCore
 end
-

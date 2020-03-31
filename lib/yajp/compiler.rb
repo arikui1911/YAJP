@@ -1,11 +1,13 @@
+require 'yajp/optionable'
+
 module YAJP
   # Compiler compiles JSON AST to Ruby objects.
   class Compiler
-    def initialize
-      yield self if block_given?
-    end
+    include Optionable
 
-    attr_accessor :symbolize_keys
+    def initialize(symbolize_keys: false)
+      optionable_init binding()
+    end
 
     # Run compiler.
     #
@@ -38,7 +40,7 @@ module YAJP
 
     def compile_object(members)
       members.each_with_object({}){|(k, v), h|
-        k = k.intern if symbolize_keys
+        k = k.intern if @symbolize_keys
         h[k] = compile(v)
       }
     end
