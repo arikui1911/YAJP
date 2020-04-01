@@ -27,7 +27,7 @@ module YAJP
     end
 
     def peek
-      read().tap{|t| unread t }
+      read.tap{|t| unread t }
     end
 
     def pos(token)
@@ -44,9 +44,9 @@ module YAJP
     end
 
     def expect(kind)
-      t = read()
-      parse_error(t, "expect #{kind} but #{inspect_token t}") unless kind == t.kind
-      t
+      read.tap do |t|
+        parse_error(t, "expect #{kind} but #{inspect_token t}") unless kind == t.kind
+      end
     end
 
     def unexpected(t)
@@ -54,9 +54,7 @@ module YAJP
     end
 
     def parse_json
-      t = read()
-      raise ParseError.new("empty input") if t.kind == :EOF
-      unread t
+      raise ParseError.new("empty input") if peek.kind == :EOF
       [:json, [1, 1], @lexer.filename, parse_element()]
     end
 
@@ -100,18 +98,22 @@ module YAJP
       end
     end
 
-    def parse_members
-      members = [parse_member()]
-      loop do
+    def parse_comma_list(closer)
+      list = [yield()]
+      while true
         t = read()
         unless t.kind == ','
           unread t
           break
         end
-        break if @trailing_comma && peek().kind == '}'
-        members << parse_member()
+        break if @trailing_comma && closer == peek.kind
+        list << yield()
       end
-      members
+      list
+    end
+
+    def parse_members
+      parse_comma_list('}', &method(:parse_member))
     end
 
     def parse_member
@@ -131,17 +133,7 @@ module YAJP
     end
 
     def parse_elements
-      elements = [parse_element()]
-      loop do
-        t = read()
-        unless t.kind == ','
-          unread t
-          break
-        end
-        break if @trailing_comma && peek().kind == ']'
-        elements << parse_element()
-      end
-      elements
+      parse_comma_list(']', &method(:parse_element))
     end
   end
 
