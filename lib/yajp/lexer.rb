@@ -70,23 +70,15 @@ module YAJP
       emit :EOF, nil
     end
 
-    def line_comment_re
-      @comment ? /\A\/\// : /(?!)/
-    end
-
-    def block_comment_beg_re
-      @comment ? /\A\/\*/ : /(?!)/
-    end
-
     def lex_initial(src)
-      lc_re = line_comment_re()
-      bc_re = block_comment_beg_re()
+      line_comment_re      = @comment ? /\A\/\// : /(?!)/
+      block_comment_beg_re = @comment ? /\A\/\*/ : /(?!)/
       case src
       in /\A[\s\n]+/
         # do nothing
-      in ^lc_re
+      in ^line_comment_re
         return ''
-      in ^bc_re
+      in ^block_comment_beg_re
         @state = :comment
       in /\A"/
         @string = new_token(:STRING, String.new)
@@ -101,6 +93,8 @@ module YAJP
         emit :FALSE, false
       in /\Anull/
         emit :NULL, nil
+      in /\A[_a-zA-Z][_a-zA-Z\d]*/
+        emit :SYMBOL, $&
       in /\A./
         emit $&, $&
       end

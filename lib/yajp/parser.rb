@@ -5,7 +5,7 @@ module YAJP
   class Parser
     include Optionable
 
-    def initialize(lexer, trailing_comma: false)
+    def initialize(lexer, trailing_comma: false, identifier_keys: false)
       optionable_init binding()
       @lexer = lexer
       @buf = []
@@ -93,6 +93,12 @@ module YAJP
         members = parse_members()
         expect '}'
         [:object, pos(beg), members]
+      when :SYMBOL
+        unexpected(t) unless @identifier_keys
+        unread t
+        members = parse_members()
+        expect '}'
+        [:object, pos(beg), members]
       else
         unexpected t
       end
@@ -117,7 +123,16 @@ module YAJP
     end
 
     def parse_member
-      k = expect(:STRING)
+      k = read()
+      case k.kind
+      when :STRING
+        # do nothing
+      when :SYMBOL
+        unexpected(k) unless @identifier_keys
+      else
+        unexpected k
+      end
+      # k = expect(:STRING)
       expect ':'
       [k.value, parse_element()]
     end
