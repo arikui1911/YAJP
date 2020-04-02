@@ -19,7 +19,7 @@ module YAJP
     #
     # @return [Lexer] a lexer instance
     #
-    def initialize(src, filename = nil, initial_lineno = 1, comment: false)
+    def initialize(src, filename = nil, initial_lineno = 1, comment: false, single_quote: false)
       optionable_init binding()
       @src = src
       @file = filename
@@ -83,6 +83,13 @@ module YAJP
       in /\A"/
         @string = new_token(:STRING, String.new)
         @state = :string
+      in /\A'/
+        if @single_quote
+          @string = new_token(:SINGLE_QUOTED, String.new)
+          @state = :string
+        else
+          emit $&, $&
+        end
       in /\A-?[1-9]\d*\.\d+([eE][+-]?\d+)?/ | /\A-?0\.\d+([eE][+-]?\d+)?/
         emit :NUMBER, Float($&)
       in /\A-?[1-9]\d*/ | /\A-?0/
@@ -123,12 +130,27 @@ module YAJP
     }
     private_constant :ESC
 
+    def finish_string
+      @string.kind = :STRING
+      @string.value.freeze
+      emit_raw @string
+      @state = :initial
+    end
+
     def lex_string(src)
       case src
       in /\A"/
-        @string.value.freeze
-        emit_raw @string
-        @state = :initial
+        if @string.kind == :STRING
+          finish_string
+        else
+          @string.value << $&
+        end
+      in /\A'/
+        if @string.kind == :SINGLE_QUOTED
+          finish_string
+        else
+          @string.value << $&
+        end
       in /\A\\u([\da-fA-F]{4})/
         @string.value << Integer("0x#{$1}").chr('UTF-8')
       in /\A\\(["\\\/bfnrt])/
