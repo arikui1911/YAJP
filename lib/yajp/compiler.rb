@@ -5,6 +5,12 @@ module YAJP
   class Compiler
     include Optionable
 
+    # Generate a compiler instance.
+    #
+    # @param [boolean] symbolize_keys   Represents object keys by Symbol
+    #
+    # @return [Compiler] a compiler instance
+    #
     def initialize(symbolize_keys: false)
       optionable_init binding()
     end

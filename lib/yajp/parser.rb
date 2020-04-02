@@ -5,12 +5,26 @@ module YAJP
   class Parser
     include Optionable
 
+    # Generate a parser instance.
+    #
+    # @param [Lexer] lexer              A lexer object with subject source
+    # @param [boolean] trailing_comma   Allow "extra" comma trailing last object member and array element
+    # @param [boolean] identifier_keys  Allow not-quoted object key or not
+    # 
+    # @return [Parser] a parser instance
+    #
     def initialize(lexer, trailing_comma: false, identifier_keys: false)
       optionable_init binding()
       @lexer = lexer
       @buf = []
     end
 
+    # Run parser.
+    #
+    # @return [Array] JSON AST represented by Array
+    #
+    # @raise [ParseError] for invalid JSON syntax
+    #
     def parse
       parse_json
     end

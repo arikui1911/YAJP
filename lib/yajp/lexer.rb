@@ -16,6 +16,7 @@ module YAJP
     # @param [String]     filename        a filename of src used for error message, for example
     # @param [Integer]    initial_lineno  lexer count line number of src from this value
     # @param [boolean]    comment         Allow comment syntax or not
+    # @param [boolean]    single_quote    Allow single-quoted string syntax or not
     #
     # @return [Lexer] a lexer instance
     #
@@ -28,6 +29,10 @@ module YAJP
       @fib = Fiber.new(&method(:lex))
     end
 
+    # Returns filename of lexing subject.
+    #
+    # @return [String]  filename
+    #
     def filename
       @file
     end
