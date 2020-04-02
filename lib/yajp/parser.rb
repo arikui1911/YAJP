@@ -101,21 +101,18 @@ module YAJP
       t = read()
       case t.kind
       when '}'
-        [:object, pos(beg), []]
+        return [:object, pos(beg), []]
       when :STRING
-        unread t
-        members = parse_members()
-        expect '}'
-        [:object, pos(beg), members]
+        # do nothing
       when :SYMBOL
-        unexpected(t) unless @identifier_keys
-        unread t
-        members = parse_members()
-        expect '}'
-        [:object, pos(beg), members]
+        unexpected t unless @identifier_keys
       else
         unexpected t
       end
+      unread t
+      members = parse_members()
+      expect '}'
+      [:object, pos(beg), members]
     end
 
     def parse_comma_list(closer)
@@ -142,11 +139,10 @@ module YAJP
       when :STRING
         # do nothing
       when :SYMBOL
-        unexpected(k) unless @identifier_keys
+        unexpected k unless @identifier_keys
       else
         unexpected k
       end
-      # k = expect(:STRING)
       expect ':'
       [k.value, parse_element()]
     end
