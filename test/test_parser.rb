@@ -33,7 +33,7 @@ class TestParser < Test::Unit::TestCase
     'string' => [[:string, 'Hello'], [:STRING, 'Hello']],
     'true' => [[:true], [:TRUE, true]],
 
-    'array' => [[:array, [:number, 1
+    # 'array' => [[:array, [:number, 1
   })
   test 'parse value' do |data|
     assert_json_value [data[0][0], [1, 1], *data[0].drop(1)], mock_lexer([*data[1], 1, 1], [:EOF, nil, 2, 1])
